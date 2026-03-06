@@ -34,22 +34,35 @@ const App = () => {
     return () => unsubscribe();
   }, []);
 
-  // Termo: Real-time Data Sync - Sincronização com mapeamento de IDs
+  // Sincronização em Tempo Real com Tratamento de Reatividade
   useEffect(() => {
     if (!usuarioLogado) return;
 
+    // Monitoramento do Pátio
     onValue(ref(db, 'patio'), (snapshot) => {
       const data = snapshot.val();
-      // Mapeia a KEY do Firebase como ID para permitir exclusão/edição
       setVeiculosNoPatio(data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : []);
     });
 
+    // Monitoramento Financeiro - ATUALIZADO COM FIX DE EXCLUSÃO
     onValue(ref(db, 'financeiro'), (snapshot) => {
-      const data = snapshot.val();
-      // Crucial: O ID é injetado aqui para que o componente Financeiro possa deletar/editar
-      setServicosFinalizados(data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : []);
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        // Injeção de ID garantida para que o botão de excluir saiba o endereço do dado
+        const listaTratada = Object.keys(data).map(key => ({
+          id: key, 
+          ...data[key]
+        }));
+        setServicosFinalizados(listaTratada);
+      } else {
+        // Se deletar o último item ou a base estiver vazia, limpa a lista no React
+        setServicosFinalizados([]);
+      }
+    }, (error) => {
+      console.error("Anubis Tech - Falha na sincronização financeira:", error);
     });
 
+    // Monitoramento do Estoque
     onValue(ref(db, 'estoque'), (snapshot) => {
       const data = snapshot.val();
       setItensEstoque(data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : []);
@@ -140,27 +153,27 @@ const App = () => {
         </h2>
         
         <nav className="flex-1 space-y-4">
-          <button onClick={() => setTelaAtiva('dashboard')} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all font-bold uppercase text-[10px] tracking-widest ${telaAtiva === 'dashboard' ? 'bg-blue-600 shadow-lg shadow-blue-600/20 text-white' : 'text-slate-400 hover:bg-slate-800'}`}>
+          <button onClick={() => setTelaAtiva('dashboard')} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all font-bold uppercase text-[10px] tracking-widest ${telaAtiva === 'dashboard' ? 'bg-blue-600 shadow-lg shadow-blue-600/20 text-white font-black' : 'text-slate-400 hover:bg-slate-800'}`}>
             <LayoutDashboard size={20} /> Painel
           </button>
-          <button onClick={() => setTelaAtiva('checkin')} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all font-bold uppercase text-[10px] tracking-widest ${telaAtiva === 'checkin' ? 'bg-blue-600 shadow-lg shadow-blue-600/20 text-white' : 'text-slate-400 hover:bg-slate-800'}`}>
+          <button onClick={() => setTelaAtiva('checkin')} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all font-bold uppercase text-[10px] tracking-widest ${telaAtiva === 'checkin' ? 'bg-blue-600 shadow-lg shadow-blue-600/20 text-white font-black' : 'text-slate-400 hover:bg-slate-800'}`}>
             <UserPlus size={20} /> Check-in
           </button>
-          <button onClick={() => setTelaAtiva('patio')} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all font-bold uppercase text-[10px] tracking-widest ${telaAtiva === 'patio' ? 'bg-blue-600 shadow-lg shadow-blue-600/20 text-white' : 'text-slate-400 hover:bg-slate-800'}`}>
+          <button onClick={() => setTelaAtiva('patio')} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all font-bold uppercase text-[10px] tracking-widest ${telaAtiva === 'patio' ? 'bg-blue-600 shadow-lg shadow-blue-600/20 text-white font-black' : 'text-slate-400 hover:bg-slate-800'}`}>
             <ClipboardList size={20} /> Pátio
           </button>
-          <button onClick={() => setTelaAtiva('financeiro')} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all font-bold uppercase text-[10px] tracking-widest ${telaAtiva === 'financeiro' ? 'bg-blue-600 shadow-lg shadow-blue-600/20 text-white' : 'text-slate-400 hover:bg-slate-800'}`}>
+          <button onClick={() => setTelaAtiva('financeiro')} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all font-bold uppercase text-[10px] tracking-widest ${telaAtiva === 'financeiro' ? 'bg-blue-600 shadow-lg shadow-blue-600/20 text-white font-black' : 'text-slate-400 hover:bg-slate-800'}`}>
             <Wallet size={20} /> Financeiro
           </button>
-          <button onClick={() => setTelaAtiva('estoque')} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all font-bold uppercase text-[10px] tracking-widest ${telaAtiva === 'estoque' ? 'bg-blue-600 shadow-lg shadow-blue-600/20 text-white' : 'text-slate-400 hover:bg-slate-800'}`}>
+          <button onClick={() => setTelaAtiva('estoque')} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all font-bold uppercase text-[10px] tracking-widest ${telaAtiva === 'estoque' ? 'bg-blue-600 shadow-lg shadow-blue-600/20 text-white font-black' : 'text-slate-400 hover:bg-slate-800'}`}>
             <Package size={20} /> ESTOQUE
           </button>
-          <button onClick={() => setTelaAtiva('auditoria')} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all font-bold uppercase text-[10px] tracking-widest ${telaAtiva === 'auditoria' ? 'bg-purple-600 shadow-lg shadow-purple-600/20 text-white' : 'text-slate-400 hover:bg-slate-800'}`}>
+          <button onClick={() => setTelaAtiva('auditoria')} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all font-bold uppercase text-[10px] tracking-widest ${telaAtiva === 'auditoria' ? 'bg-purple-600 shadow-lg shadow-purple-600/20 text-white font-black' : 'text-slate-400 hover:bg-slate-800'}`}>
             <ShieldCheck size={20} /> Auditoria Estratégica
           </button>
         </nav>
 
-        <button onClick={handleLogout} className="mt-auto flex items-center gap-3 p-3 text-slate-500 hover:text-red-500 transition-all font-black uppercase text-[10px] tracking-widest">
+        <button onClick={handleLogout} className="mt-auto flex items-center gap-3 p-3 text-slate-500 hover:text-red-500 transition-all font-black uppercase text-[10px] tracking-widest font-black">
           <LogOut size={20} /> Sair
         </button>
       </aside>
@@ -182,22 +195,22 @@ const App = () => {
                 <DollarSign size={40} className="text-[#0b0f1a] absolute -right-2 -bottom-2 opacity-20" />
               </div>
               <div className="bg-[#161b2c] p-6 rounded-3xl border border-slate-800 flex justify-between relative overflow-hidden shadow-2xl font-black">
-                <div className="z-10"><p className="text-slate-500 text-[10px] font-black uppercase mb-1 text-red-400">Marketing (Descontos)</p><h3 className="text-3xl font-black italic text-red-500 tracking-tighter font-black">R$ {descontosTotais.toFixed(2)}</h3></div>
+                <div className="z-10"><p className="text-slate-500 text-[10px] font-black uppercase mb-1 text-red-400 font-black">Marketing (Descontos)</p><h3 className="text-3xl font-black italic text-red-500 tracking-tighter">R$ {descontosTotais.toFixed(2)}</h3></div>
                 <Percent size={40} className="text-[#0b0f1a] absolute -right-2 -bottom-2 opacity-20" />
               </div>
               <div className="bg-[#161b2c] p-6 rounded-3xl border border-slate-800 flex justify-between relative overflow-hidden shadow-2xl font-black">
-                <div className="z-10"><p className="text-slate-500 text-[10px] font-black uppercase mb-1 text-cyan-400">Insumos Críticos</p><h3 className={`text-3xl font-black italic tracking-tighter font-black ${itensCriticos.length > 0 ? 'text-red-500' : 'text-slate-500'}`}>{itensCriticos.length}</h3></div>
+                <div className="z-10"><p className="text-slate-500 text-[10px] font-black uppercase mb-1 text-cyan-400 font-black">Insumos Críticos</p><h3 className={`text-3xl font-black italic tracking-tighter ${itensCriticos.length > 0 ? 'text-red-500' : 'text-slate-500'}`}>{itensCriticos.length}</h3></div>
                 <Package size={40} className="text-[#0b0f1a] absolute -right-2 -bottom-2 opacity-20" />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                <div onClick={() => setTelaAtiva('patio')} className="bg-[#161b2c] p-8 rounded-3xl border border-slate-800 cursor-pointer hover:border-blue-500 transition-all group shadow-xl font-black">
-                  <div className="flex gap-4 mb-4"><div className="bg-blue-500/10 p-3 rounded-2xl text-blue-500"><Car size={24} /></div><span className="text-slate-500 text-[10px] font-black uppercase mt-4 text-white">Veículos no Pátio</span></div>
-                  <h3 className="text-6xl font-black italic text-blue-500 tracking-tighter font-black">{veiculosNoPatio.length}</h3>
+                  <div className="flex gap-4 mb-4 font-black"><div className="bg-blue-500/10 p-3 rounded-2xl text-blue-500 font-black"><Car size={24} /></div><span className="text-slate-500 text-[10px] font-black uppercase mt-4 text-white">Veículos no Pátio</span></div>
+                  <h3 className="text-6xl font-black italic text-blue-500 tracking-tighter">{veiculosNoPatio.length}</h3>
                </div>
                <div className="bg-[#161b2c] p-8 rounded-3xl border border-slate-800 shadow-xl font-black">
-                  <div className="flex gap-4 mb-4"><div className="bg-cyan-500/10 p-3 rounded-2xl text-cyan-500"><TrendingUp size={24} /></div><span className="text-slate-500 text-[10px] font-black uppercase mt-4 text-white">Performance</span></div>
+                  <div className="flex gap-4 mb-4 font-black"><div className="bg-cyan-500/10 p-3 rounded-2xl text-cyan-500 font-black"><TrendingUp size={24} /></div><span className="text-slate-500 text-[10px] font-black uppercase mt-4 text-white">Performance</span></div>
                   <p className="text-lg font-black italic text-white leading-tight uppercase tracking-tighter">Ticket Médio:<br/><span className="text-cyan-500 text-3xl font-black">R$ {servicosFinalizados.length > 0 ? (faturamentoTotal / servicosFinalizados.length).toFixed(2) : "0.00"}</span></p>
                </div>
             </div>
