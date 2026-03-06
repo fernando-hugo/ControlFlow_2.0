@@ -9,7 +9,6 @@ const Financeiro = ({ historico = [], onBack, total }) => {
   const [tipo, setTipo] = useState('entrada');
   const [editId, setEditId] = useState(null);
   
-  // Estado do formulário expandido para preservar metadados na edição
   const [form, setForm] = useState({ 
     descricao: '', 
     valor: '', 
@@ -53,9 +52,8 @@ const Financeiro = ({ historico = [], onBack, total }) => {
   };
 
   const handleSave = () => {
-    // Validação de integridade Anúbis Tech
     if (!form.valor || isNaN(form.valor)) {
-      alert("Por favor, insira um valor numérico válido.");
+      alert("Anúbis Tech: Insira um valor numérico válido.");
       return;
     }
 
@@ -63,31 +61,40 @@ const Financeiro = ({ historico = [], onBack, total }) => {
       ...form, 
       fluxo: tipo, 
       valor: Number(form.valor), 
-      // Preserva a cronologia original se for edição
       dataRegistro: isEditing ? form.dataRegistro : new Date().toLocaleDateString('pt-BR'), 
       timestamp: isEditing ? form.timestamp : Date.now() 
     };
 
     if (isEditing && editId) {
-      // Executa o Update no nó específico do Firebase
       update(ref(db, `financeiro/${editId}`), dadosParaSalvar)
         .then(() => {
           setShowModal(false);
           setIsEditing(false);
         })
-        .catch((error) => console.error("Erro ao atualizar registro:", error));
+        .catch((err) => console.error("Erro ao atualizar:", err));
     } else {
-      // Cria um novo registro
       push(ref(db, 'financeiro'), dadosParaSalvar)
-        .then(() => {
-          setShowModal(false);
-        });
+        .then(() => setShowModal(false));
     }
   };
 
+  // Lógica de exclusão corrigida com verificação de ID
   const handleExcluir = (id) => {
-    if (window.confirm("Anúbis Tech: Confirmar exclusão permanente deste registro financeiro?")) {
-      remove(ref(db, `financeiro/${id}`));
+    if (!id) {
+      alert("Erro interno: ID do registro não encontrado.");
+      return;
+    }
+
+    if (window.confirm("Anúbis Tech: Confirmar exclusão permanente deste registro?")) {
+      const registroRef = ref(db, `financeiro/${id}`);
+      remove(registroRef)
+        .then(() => {
+          console.log("Sucesso: Registro removido da base de dados.");
+        })
+        .catch((error) => {
+          console.error("Erro ao remover do Firebase:", error);
+          alert("Erro ao excluir. Verifique sua conexão.");
+        });
     }
   };
 
@@ -99,12 +106,11 @@ const Financeiro = ({ historico = [], onBack, total }) => {
           <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.4em]">Anúbis Tech</p>
         </div>
         <div className="flex gap-3">
-          <button onClick={() => handleOpenModal('entrada')} className="bg-green-600 p-4 rounded-2xl flex items-center gap-2 font-black text-[10px] uppercase shadow-lg hover:scale-105 transition-all"><PlusCircle size={18}/> Entrada</button>
-          <button onClick={() => handleOpenModal('saida')} className="bg-red-600 p-4 rounded-2xl flex items-center gap-2 font-black text-[10px] uppercase shadow-lg hover:scale-105 transition-all"><MinusCircle size={18}/> Saída</button>
+          <button onClick={() => handleOpenModal('entrada')} className="bg-green-600 p-4 rounded-2xl flex items-center gap-2 font-black text-[10px] uppercase shadow-lg"><PlusCircle size={18}/> Entrada</button>
+          <button onClick={() => handleOpenModal('saida')} className="bg-red-600 p-4 rounded-2xl flex items-center gap-2 font-black text-[10px] uppercase shadow-lg"><MinusCircle size={18}/> Saída</button>
         </div>
       </header>
 
-      {/* Grid de KPIs Financeiros */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10 font-black">
         <div className="bg-[#161b2c] p-6 rounded-3xl border border-slate-800 shadow-xl border-t-4 border-t-blue-500">
           <p className="text-slate-500 text-[9px] font-black uppercase mb-1">Bruto</p>
@@ -119,8 +125,8 @@ const Financeiro = ({ historico = [], onBack, total }) => {
           <h4 className="text-2xl font-black italic">R$ {totalSaidas.toFixed(2)}</h4>
         </div>
         <div className="bg-[#161b2c] p-6 rounded-3xl border border-slate-800 shadow-xl border-t-4 border-t-purple-500">
-          <p className="text-slate-500 text-[9px] font-black uppercase mb-1 text-purple-500 font-black">Produção</p>
-          <h4 className="text-2xl font-black italic text-white font-black">{entradas.length} Unid.</h4>
+          <p className="text-slate-500 text-[9px] font-black uppercase mb-1 text-purple-500">Produção</p>
+          <h4 className="text-2xl font-black italic text-white">{entradas.length} Unid.</h4>
         </div>
       </div>
 
@@ -135,13 +141,18 @@ const Financeiro = ({ historico = [], onBack, total }) => {
                     {item.dataRegistro} | {item.fluxo === 'saida' ? item.servico : 'Serviço'} | {item.pagamento}
                   </div>
                 </td>
-                <td className="p-8 text-right font-black">
+                <td className="p-8 text-right font-black relative">
                   <div className={`font-black italic text-3xl mb-2 ${item.fluxo === 'saida' ? 'text-red-500' : 'text-green-500'}`}>
                     {item.fluxo === 'saida' ? '-' : ''}R$ {Number(item.valor || 0).toFixed(2)}
                   </div>
+                  {/* Botões de Ação Dinâmicos */}
                   <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => handleOpenModal(item.fluxo || 'entrada', item)} className="p-2 bg-blue-500/10 text-blue-500 rounded-lg hover:bg-blue-500 hover:text-white transition-all"><Edit3 size={16}/></button>
-                    <button onClick={() => handleExcluir(item.id)} className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-all"><Trash2 size={16}/></button>
+                    <button onClick={() => handleOpenModal(item.fluxo || 'entrada', item)} className="p-2 bg-blue-500/10 text-blue-500 rounded-lg hover:bg-blue-500 hover:text-white transition-all">
+                      <Edit3 size={16}/>
+                    </button>
+                    <button onClick={() => handleExcluir(item.id)} className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-all">
+                      <Trash2 size={16}/>
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -167,7 +178,7 @@ const Financeiro = ({ historico = [], onBack, total }) => {
               )}
               <div className="flex gap-2">
                 <button onClick={() => setShowModal(false)} className="flex-1 p-4 rounded-2xl font-black uppercase text-xs tracking-widest text-slate-500 bg-slate-800/50 hover:bg-slate-800">Cancelar</button>
-                <button onClick={handleSave} className={`flex-[2] p-4 rounded-2xl font-black uppercase text-xs tracking-widest text-white ${tipo === 'entrada' ? 'bg-green-600' : 'bg-red-600'} hover:opacity-90 transition-opacity`}>{isEditing ? 'Salvar Alteração' : 'Registrar'}</button>
+                <button onClick={handleSave} className={`flex-[2] p-4 rounded-2xl font-black uppercase text-xs tracking-widest text-white ${tipo === 'entrada' ? 'bg-green-600' : 'bg-red-600'}`}>{isEditing ? 'Salvar Alteração' : 'Registrar'}</button>
               </div>
             </div>
           </div>
