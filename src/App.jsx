@@ -3,7 +3,7 @@ import {
   LayoutDashboard, UserPlus, ClipboardList, 
   Wallet, Package, RefreshCw, DollarSign, 
   TrendingUp, Car, Users, AlertTriangle, Percent, ShieldCheck, LogOut 
-} from 'lucide-center';
+} from 'lucide-react';
 import { ref, push, onValue, remove, update } from "firebase/database";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { db, auth } from "./services/firebaseConfig"; 
