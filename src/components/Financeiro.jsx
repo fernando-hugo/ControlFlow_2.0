@@ -27,7 +27,7 @@ const Financeiro = ({ historico = [], onBack, total }) => {
     setTipo(type);
     if (item) {
       setIsEditing(true);
-      setEditId(item.id);
+      setEditId(item.id); // Pega o ID mapeado pelo App.js
       setForm({
         descricao: item.descricao || item.modelo || '',
         valor: item.valor || '',
@@ -66,6 +66,7 @@ const Financeiro = ({ historico = [], onBack, total }) => {
     };
 
     if (isEditing && editId) {
+      // Usa a referência do ID injetado para atualizar
       update(ref(db, `financeiro/${editId}`), dadosParaSalvar)
         .then(() => {
           setShowModal(false);
@@ -78,21 +79,20 @@ const Financeiro = ({ historico = [], onBack, total }) => {
     }
   };
 
-  // Lógica de exclusão corrigida com verificação de ID
   const handleExcluir = (id) => {
     if (!id) {
-      alert("Erro interno: ID do registro não encontrado.");
+      alert("Erro interno Anubis Tech: ID do registro não encontrado.");
       return;
     }
 
     if (window.confirm("Anúbis Tech: Confirmar exclusão permanente deste registro?")) {
-      const registroRef = ref(db, `financeiro/${id}`);
-      remove(registroRef)
+      // Referência absoluta ao ID do Firebase
+      remove(ref(db, `financeiro/${id}`))
         .then(() => {
           console.log("Sucesso: Registro removido da base de dados.");
         })
         .catch((error) => {
-          console.error("Erro ao remover do Firebase:", error);
+          console.error("Erro ao remover:", error);
           alert("Erro ao excluir. Verifique sua conexão.");
         });
     }
@@ -102,12 +102,15 @@ const Financeiro = ({ historico = [], onBack, total }) => {
     <div className="animate-in fade-in pb-20 text-white font-black">
       <header className="flex justify-between items-end mb-10 border-b border-slate-800 pb-8">
         <div>
+          <button onClick={onBack} className="text-slate-500 hover:text-blue-500 transition mb-4 flex items-center gap-2 uppercase text-[10px] tracking-widest">
+            <ArrowLeft size={16}/> Voltar ao Painel
+          </button>
           <h2 className="text-4xl font-black italic uppercase text-blue-500 tracking-tighter">Financeiro</h2>
           <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.4em]">Anúbis Tech</p>
         </div>
         <div className="flex gap-3">
-          <button onClick={() => handleOpenModal('entrada')} className="bg-green-600 p-4 rounded-2xl flex items-center gap-2 font-black text-[10px] uppercase shadow-lg"><PlusCircle size={18}/> Entrada</button>
-          <button onClick={() => handleOpenModal('saida')} className="bg-red-600 p-4 rounded-2xl flex items-center gap-2 font-black text-[10px] uppercase shadow-lg"><MinusCircle size={18}/> Saída</button>
+          <button onClick={() => handleOpenModal('entrada')} className="bg-green-600 p-4 rounded-2xl flex items-center gap-2 font-black text-[10px] uppercase shadow-lg hover:scale-105 transition-all"><PlusCircle size={18}/> Entrada</button>
+          <button onClick={() => handleOpenModal('saida')} className="bg-red-600 p-4 rounded-2xl flex items-center gap-2 font-black text-[10px] uppercase shadow-lg hover:scale-105 transition-all"><MinusCircle size={18}/> Saída</button>
         </div>
       </header>
 
@@ -145,7 +148,6 @@ const Financeiro = ({ historico = [], onBack, total }) => {
                   <div className={`font-black italic text-3xl mb-2 ${item.fluxo === 'saida' ? 'text-red-500' : 'text-green-500'}`}>
                     {item.fluxo === 'saida' ? '-' : ''}R$ {Number(item.valor || 0).toFixed(2)}
                   </div>
-                  {/* Botões de Ação Dinâmicos */}
                   <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
                     <button onClick={() => handleOpenModal(item.fluxo || 'entrada', item)} className="p-2 bg-blue-500/10 text-blue-500 rounded-lg hover:bg-blue-500 hover:text-white transition-all">
                       <Edit3 size={16}/>
@@ -168,12 +170,22 @@ const Financeiro = ({ historico = [], onBack, total }) => {
             <div className="space-y-4">
               <input type="text" placeholder="Descrição" value={form.descricao} onChange={e => setForm({...form, descricao: e.target.value})} className="w-full bg-black border border-slate-800 p-4 rounded-2xl text-white outline-none focus:border-blue-500 font-black" />
               <input type="number" placeholder="Valor" value={form.valor} onChange={e => setForm({...form, valor: e.target.value})} className="w-full bg-black border border-slate-800 p-4 rounded-2xl text-white outline-none focus:border-blue-500 font-black" />
-              <select value={form.pagamento} onChange={e => setForm({...form, pagamento: e.target.value})} className="w-full bg-black border border-slate-800 p-4 rounded-2xl text-white outline-none font-black">
-                <option value="pix">PIX</option><option value="dinheiro">DINHEIRO</option><option value="debito">DÉBITO</option><option value="credito">CRÉDITO</option>{tipo === 'saida' && <option value="boleto">BOLETO</option>}
+              <select value={form.pagamento} onChange={e => setForm({...form, pagamento: e.target.value})} className="w-full bg-black border border-slate-800 p-4 rounded-2xl text-white outline-none font-black uppercase text-[10px]">
+                <option value="pix">PIX</option>
+                <option value="dinheiro">DINHEIRO</option>
+                <option value="debito">DÉBITO</option>
+                <option value="credito">CRÉDITO</option>
+                {tipo === 'saida' && <option value="boleto">BOLETO</option>}
               </select>
               {tipo === 'saida' && (
                 <select value={form.servico} onChange={e => setForm({...form, servico: e.target.value})} className="w-full bg-black border border-slate-800 p-4 rounded-2xl text-white outline-none uppercase font-black text-[10px]">
-                  <option value="enel">ENEL</option><option value="sabesp">SABESP</option><option value="internet">INTERNET</option><option value="folha">PAGAMENTO FUNCIONÁRIOS</option><option value="vale">VALE FUNCIONÁRIOS</option><option value="insumos">INSUMOS</option><option value="outros">OUTROS</option>
+                  <option value="enel">ENEL</option>
+                  <option value="sabesp">SABESP</option>
+                  <option value="internet">INTERNET</option>
+                  <option value="folha">PAGAMENTO FUNCIONÁRIOS</option>
+                  <option value="vale">VALE FUNCIONÁRIOS</option>
+                  <option value="insumos">INSUMOS</option>
+                  <option value="outros">OUTROS</option>
                 </select>
               )}
               <div className="flex gap-2">
