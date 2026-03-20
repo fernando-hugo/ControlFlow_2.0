@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   ArrowLeft, Target, TrendingUp, Droplets, AlertCircle, 
   X, FileText, Calendar, DollarSign, CreditCard, 
-  MinusCircle, Car 
+  MinusCircle, Car, User, Smartphone, Palette 
 } from 'lucide-react';
 
 const AuditoriaExecutiva = ({ historico = [], onBack }) => {
@@ -10,7 +10,7 @@ const AuditoriaExecutiva = ({ historico = [], onBack }) => {
   const [dataFim, setDataFim] = useState('');
   const [modalDetalhes, setModalDetalhes] = useState({ aberto: false, titulo: '', dados: [], tipo: '' });
 
-  // Normalização para comparação de datas
+  // Normalização para comparação e ordenação de datas
   const normalizarData = (d) => {
     if (!d) return 0;
     const partes = d.includes('-') ? d.split('-') : d.split('/').reverse();
@@ -25,9 +25,13 @@ const AuditoriaExecutiva = ({ historico = [], onBack }) => {
     return itemDataNum >= startNum && itemDataNum <= endNum;
   });
 
-  // Business Intelligence Engine
-  const entradas = filtrados.filter(i => i.fluxo !== 'saida');
-  const saidas = filtrados.filter(i => i.fluxo === 'saida');
+  // Business Intelligence Engine - Ordenando do mais recente para o mais antigo
+  const dadosOrdenados = [...filtrados].sort((a, b) => {
+    return normalizarData(b.dataRegistro) - normalizarData(a.dataRegistro);
+  });
+
+  const entradas = dadosOrdenados.filter(i => i.fluxo !== 'saida');
+  const saidas = dadosOrdenados.filter(i => i.fluxo === 'saida');
   
   const lucroBruto = entradas.reduce((acc, i) => acc + Number(i.valor || 0), 0);
   const faturamentoLiquido = entradas.reduce((acc, i) => acc + Number(i.valorLiquidoReal || i.valor || 0), 0);
@@ -68,7 +72,7 @@ const AuditoriaExecutiva = ({ historico = [], onBack }) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
         <CardKPI titulo="Total de Carros" valor={`${entradas.length} Unid.`} cor="border-t-purple-500" icone={Car} onClick={() => abrirRelatorio('carros', 'Relatório de Lavagens', entradas)} />
         <CardKPI titulo="Lucro Bruto" valor={`R$ ${lucroBruto.toFixed(2)}`} cor="border-t-blue-500" icone={DollarSign} onClick={() => abrirRelatorio('bruto', 'Relatório Bruto', entradas)} />
-        <CardKPI titulo="Lucro Líquido" valor={`R$ ${netProfitFinal.toFixed(2)}`} cor="border-t-green-500" icone={TrendingUp} onClick={() => abrirRelatorio('liquido', 'Relatório Líquido', filtrados)} />
+        <CardKPI titulo="Lucro Líquido" valor={`R$ ${netProfitFinal.toFixed(2)}`} cor="border-t-green-500" icone={TrendingUp} onClick={() => abrirRelatorio('liquido', 'Relatório Líquido', dadosOrdenados)} />
         <CardKPI titulo="Gastos (Saídas)" valor={`R$ ${totalGastos.toFixed(2)}`} cor="border-t-red-500" icone={MinusCircle} onClick={() => abrirRelatorio('gastos', 'Relatório de Despesas', saidas)} />
         <CardKPI titulo="Taxas de Cartão" valor={`R$ ${taxasCartao.toFixed(2)}`} cor="border-t-orange-500" icone={CreditCard} onClick={() => abrirRelatorio('taxas', 'Custos de Cartão', entradas.filter(i => i.taxaDeducao > 0))} />
         <CardKPI titulo="Gasto de Insumos" valor={`${(entradas.length * 0.1).toFixed(1)}L`} cor="border-t-cyan-500" icone={Droplets} onClick={() => abrirRelatorio('insumos', 'Projeção de Insumos', entradas)} />
@@ -78,18 +82,19 @@ const AuditoriaExecutiva = ({ historico = [], onBack }) => {
 
       {modalDetalhes.aberto && (
         <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[300] flex items-center justify-center p-6">
-          <div className="bg-[#0b0f1a] w-full max-w-5xl h-[85vh] rounded-[3rem] border border-slate-800 flex flex-col shadow-2xl overflow-hidden">
-            <header className="p-10 border-b border-slate-800 flex justify-between items-center bg-[#161b2c]">
+          <div className="bg-[#0b0f1a] w-full max-w-7xl h-[85vh] rounded-[3rem] border border-slate-800 flex flex-col shadow-2xl overflow-hidden">
+            <header className="p-8 border-b border-slate-800 flex justify-between items-center bg-[#161b2c]">
               <h3 className="text-3xl text-white tracking-tighter flex items-center gap-3"><FileText className="text-blue-500" /> {modalDetalhes.titulo}</h3>
               <button onClick={() => setModalDetalhes({ ...modalDetalhes, aberto: false })} className="p-4 bg-slate-800 hover:bg-red-600 rounded-2xl text-white transition-all"><X size={24} /></button>
             </header>
 
-            <div className="flex-1 overflow-y-auto p-10 font-black italic">
-              <table className="w-full text-left">
+            <div className="flex-1 overflow-x-auto overflow-y-auto p-6 font-black italic">
+              <table className="w-full text-left min-w-[1000px]">
                 <thead className="text-[10px] text-slate-500 uppercase tracking-widest border-b border-slate-800">
                   <tr>
                     <th className="pb-4 px-4">Data</th>
-                    <th className="pb-4 px-4">Descrição</th>
+                    <th className="pb-4 px-4">Cliente / Placa</th>
+                    <th className="pb-4 px-4">Veículo / Cor</th>
                     <th className="pb-4 px-4 text-right">Bruto</th>
                     <th className="pb-4 px-4 text-right">Taxa</th>
                     <th className="pb-4 px-4 text-right">Líquido</th>
@@ -97,21 +102,36 @@ const AuditoriaExecutiva = ({ historico = [], onBack }) => {
                 </thead>
                 <tbody className="divide-y divide-slate-800/50">
                   {modalDetalhes.dados.map((item, idx) => (
-                    <tr key={idx} className="hover:bg-blue-600/5 transition-all text-sm group">
-                      <td className="py-4 px-4 text-slate-400 text-[11px] uppercase">{item.dataRegistro}</td>
-                      <td className="py-4 px-4 text-white uppercase text-lg tracking-tighter">{item.placa || item.modelo || item.descricao}</td>
-                      <td className="py-4 px-4 text-right text-slate-400">R$ {Number(item.valor || 0).toFixed(2)}</td>
-                      <td className="py-4 px-4 text-right text-red-500/50 font-black">- R$ {Number(item.taxaDeducao || 0).toFixed(2)}</td>
-                      <td className={`py-4 px-4 text-right font-black tracking-tighter text-lg ${item.fluxo === 'saida' ? 'text-red-500' : 'text-green-500'}`}>R$ {Number(item.valorLiquidoReal || item.valor || 0).toFixed(2)}</td>
+                    <tr key={idx} className="hover:bg-blue-600/5 transition-all group">
+                      <td className="py-4 px-4 text-slate-400 text-[11px] uppercase whitespace-nowrap">{item.dataRegistro}</td>
+                      <td className="py-4 px-4">
+                        <div className="flex flex-col">
+                          <span className="text-white text-base tracking-tighter uppercase">{item.nome || 'N/A'}</span>
+                          <span className="text-blue-500 text-[10px] font-black tracking-widest font-mono uppercase">{item.placa || 'Sem Placa'}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="flex flex-col">
+                          <span className="text-slate-300 text-sm uppercase">{item.modelo || item.descricao || 'N/A'}</span>
+                          <span className="text-slate-500 text-[9px] uppercase font-black">{item.cor || 'Cor não inf.'}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4 text-right text-slate-400 font-mono italic">R$ {Number(item.valor || 0).toFixed(2)}</td>
+                      <td className="py-4 px-4 text-right text-red-500/50 font-black font-mono">- R$ {Number(item.taxaDeducao || 0).toFixed(2)}</td>
+                      <td className={`py-4 px-4 text-right font-black tracking-tighter text-xl font-mono ${item.fluxo === 'saida' ? 'text-red-500' : 'text-green-500'}`}>
+                        R$ {Number(item.valorLiquidoReal || item.valor || 0).toFixed(2)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
             
-            <footer className="p-10 border-t border-slate-800 bg-[#161b2c] flex justify-between items-center">
+            <footer className="p-8 border-t border-slate-800 bg-[#161b2c] flex justify-between items-center">
                <span className="text-[10px] text-slate-500 tracking-[0.4em]">Anúbis Tech ControlFlow 2.0</span>
-               <div className="text-2xl text-white">Total: <span className="text-blue-500">R$ {modalDetalhes.dados.reduce((acc, i) => acc + (Number(i.valorLiquidoReal || i.valor || 0) * (i.fluxo === 'saida' ? -1 : 1)), 0).toFixed(2)}</span></div>
+               <div className="text-2xl text-white font-black italic">
+                 Total do Período: <span className="text-blue-500">R$ {modalDetalhes.dados.reduce((acc, i) => acc + (Number(i.valorLiquidoReal || i.valor || 0) * (i.fluxo === 'saida' ? -1 : 1)), 0).toFixed(2)}</span>
+               </div>
             </footer>
           </div>
         </div>
